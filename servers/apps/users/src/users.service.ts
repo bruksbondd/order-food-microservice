@@ -1,4 +1,3 @@
-
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtVerifyOptions } from '@nestjs/jwt';
@@ -12,8 +11,8 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
-// import { EmailService } from './email/email.service';
-// import { TokenSender } from './utils/sendToken';
+import { EmailService } from './email/email.service';
+import { TokenSender } from './utils/sendToken';
 import { User } from '@prisma/client';
 
 interface UserData {
@@ -29,7 +28,7 @@ export class UsersService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    
+    private readonly emailService: EmailService,
   ) {}
 
   // register user service
@@ -77,13 +76,13 @@ export class UsersService {
 
     const activation_token = activationToken.token;
 
-    // await this.emailService.sendMail({
-    //   email,
-    //   subject: 'Activate your account!',
-    //   template: './activation-mail',
-    //   name,
-    //   activationCode,
-    // });
+    await this.emailService.sendMail({
+      email,
+      subject: 'Activate your account!',
+      template: './activation-mail',
+      name,
+      activationCode,
+    });
 
     return { activation_token, response };
   }
@@ -152,8 +151,8 @@ export class UsersService {
     });
 
     if (user && (await this.comparePassword(password, user.password))) {
-      // const tokenSender = new TokenSender(this.configService, this.jwtService);
-      // return tokenSender.sendToken(user);
+      const tokenSender = new TokenSender(this.configService, this.jwtService);
+      return tokenSender.sendToken(user);
     } else {
       return {
         user: null,
@@ -206,13 +205,13 @@ export class UsersService {
       this.configService.get<string>('CLIENT_SIDE_URI') +
       `/reset-password?verify=${forgotPasswordToken}`;
 
-    // await this.emailService.sendMail({
-    //   email,
-    //   subject: 'Reset your Password!',
-    //   template: './forgot-password',
-    //   name: user.name,
-    //   activationCode: resetPasswordUrl,
-    // });
+    await this.emailService.sendMail({
+      email,
+      subject: 'Reset your Password!',
+      template: './forgot-password',
+      name: user.name,
+      activationCode: resetPasswordUrl,
+    });
 
     return { message: `Your forgot password request succesful!` };
   }
